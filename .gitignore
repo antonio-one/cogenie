@@ -1,0 +1,10 @@
+.venv
+.idea
+__pycache__
+.secrets
+.env
+build.sh
+.old
+dist
+.coverage--all
+tests/pytest.ini
