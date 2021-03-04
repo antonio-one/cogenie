@@ -10,7 +10,7 @@ import typing
 options = PipelineOptions(
     runner="DataflowRunner",
     streaming=True,
-    job_name=f"$job_name",
+    job_name="$job_name",
     experiments="use_beam_bq_sink"
 )
 
