@@ -11,6 +11,7 @@ class Consumer:
     # runner: str = ""
     # main: str = ""
     payload: str = ""
+    job_name: str = ""
 
     def __bool__(self):
         return self.file_path != "" and self.field_list != "" and self.row_parser != ""
