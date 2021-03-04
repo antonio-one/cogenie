@@ -1,10 +1,16 @@
 import typing
 from glob import glob
+from urllib.parse import urlunsplit
 
 import requests
-from consumer_generator.domain import model
-from data_catalogue.domain.model import SchemaDefinition, SchemaFormat
-from sidious.helpers import catalogue_url
+from datcat.domain.model import SchemaDefinition, SchemaFormat
+
+from cogenie.domain import model
+from cogenie.settings import DATCAT_HOST, DATCAT_PORT, DATCAT_SCHEME
+
+DATCAT_NETLOC = f"{DATCAT_HOST}:{DATCAT_PORT}"
+SCHEMA_URL_COMPONENTS = (DATCAT_SCHEME, DATCAT_NETLOC, "/schemas", "refresh=True", "")
+SCHEMA_URL = urlunsplit(SCHEMA_URL_COMPONENTS)
 
 
 class FileSystemConsumerRepository:
@@ -37,7 +43,7 @@ class FileSystemConsumerRepository:
         :return:
             Schema definition in json. E.g see tests/schema/schema_one_v1.json
         """
-        response = requests.get(catalogue_url(route="list_catalogue", refresh=True))
+        response = requests.get(SCHEMA_URL)
         response.raise_for_status()
 
         return response.json()
