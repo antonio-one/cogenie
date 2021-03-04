@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 import json
+import logging
+import typing
+from datetime import date
+
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-import logging
-from datetime import date
-import typing
 
 options = PipelineOptions(
     runner="DataflowRunner",
