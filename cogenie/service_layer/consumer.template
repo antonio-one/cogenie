@@ -7,6 +7,9 @@ from datetime import date
 
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import (
+    _BeamArgumentParser as BeamArgumentParser,
+)
 
 options = PipelineOptions(
     runner="DataflowRunner",
@@ -18,7 +21,7 @@ options = PipelineOptions(
 
 class ExtraOptions(PipelineOptions):
     @classmethod
-    def _add_argparse_args(cls, parser):  # type: (_BeamArgumentParser) -> None
+    def _add_argparse_args(cls, parser):  # type: (BeamArgumentParser) -> None
         parser.add_argument("--subscription")
         parser.add_argument("--dataset")
         parser.add_argument("--table")
