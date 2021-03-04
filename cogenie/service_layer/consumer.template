@@ -1,65 +1,96 @@
 #!/usr/bin/env python
 
-"""A very simple what you publish is what you get Apache Beam streaming pipeline.
-It reads JSON encoded messages from Pub/Sub and writes the results to BigQuery."""
-
-import argparse
 import json
-import logging
-
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+import logging
+from datetime import date
+import typing
+
+options = PipelineOptions(
+    runner="DataflowRunner",
+    streaming=True,
+    job_name=f"$job_name",
+    experiments="use_beam_bq_sink"
+)
+
+
+class ExtraOptions(PipelineOptions):
+    @classmethod
+    def _add_argparse_args(cls, parser):  # type: (_BeamArgumentParser) -> None
+        parser.add_argument("--subscription")
+        parser.add_argument("--dataset")
+        parser.add_argument("--table")
+
 
 # Defines the BigQuery schema for the output table.
 SCHEMA = ",".join($field_list)
 
 
-def parse_json_message(message):
+def parse_json_message(message: str) -> typing.Dict[str, typing.Any]:
+
     row = json.loads(message)
     return {
             $simple_parse
     }
 
 
-def run(args, input_subscription, output_table):
-    """Build and run the pipeline."""
-    options = PipelineOptions(args, save_main_session=True, streaming=True)
+class IngestOrDiscard(beam.DoFn):
+    def to_runner_api_parameter(self, unused_context):
+        pass
 
-    with beam.Pipeline(options=options) as pipeline:
+    def process(self, row: typing.Dict[str, typing.Any]):
+        """
+        :param row:
+        For now, we assume that every event has
+        event_timestamp, event_name, event_version and date fields
+        :return:
+        """
+        event_timestamp = row["event_timestamp"]
+        if isinstance(event_timestamp, float) is False:
+            logging.warning(f"{event_timestamp=} is not a FLOAT. Row discarded.")
+            return
 
-        # Read the messages from PubSub and process them.
+        event_name = row["event_name"]
+        if isinstance(event_name, str) is False:
+            logging.warning(f"{event_name=} is not a STRING. Row discarded.")
+            return
+
+        event_version = row["event_version"]
+        if isinstance(event_version, int) is False or event_version < 1:
+            logging.warning(f"{event_version=} is incorrect. Row discarded.")
+            return
+
+        partition_date = date.fromisoformat(row["date"])
+        event_date = date.fromtimestamp(row["event_timestamp"])
+
+        if partition_date != event_date:
+            logging.warning(f"{partition_date=} and {event_date=} are different. Row discarded.")
+            return
+
+        return [row]
+
+
+def run(subscription, dataset, table):
+
+    with beam.Pipeline(options=options) as p:
+
         messages = (
-            pipeline
-            | "Read from Pub/Sub" >> beam.io.ReadFromPubSub(subscription=input_subscription).with_output_types(bytes)
-            | "UTF-8 bytes to string" >> beam.Map(lambda msg: msg.decode("utf-8"))
-            | "Parse JSON messages" >> beam.Map(parse_json_message)
+            p
+            | "Read subscription" >> beam.io.ReadFromPubSub(subscription=subscription)
+            | "UTF-8 bytes to string" >> beam.Map(lambda m: m.decode("utf-8"))
+            | "Parse json" >> beam.Map(parse_json_message)
+            | "Mini quality check" >> beam.ParDo(IngestOrDiscard())
         )
 
-        # Output the results into BigQuery table.
-        _ = messages | "Write to Big Query" >> beam.io.WriteToBigQuery(
-            output_table, schema=SCHEMA
+        table_id = f'{options.display_data()["project"]}:{dataset}.{table}'
+        messages | beam.io.WriteToBigQuery(
+            table=table_id,
+            schema=SCHEMA,
+            write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
         )
 
 
-def _run():
-    """
-    Usage:
-    simple_ingest
-        --output_table "ancient-link-298622:ancient_link.schema_one_v1"
-        --input_subscription projects/ancient-link-298622/subscriptions/default_sidious_subscription
-    :return:
-    """
-
-    logging.getLogger().setLevel(logging.INFO)
-    # TODO: maybe these could be hard_coded if this is code-generated
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--output_table",
-        help="Format: PROJECT:DATASET.TABLE or DATASET.TABLE.",
-    )
-    parser.add_argument(
-        "--input_subscription",
-        help="Format: projects/<PROJECT>/subscriptions/<SUBSCRIPTION>",
-    )
-    known_args, pipeline_args = parser.parse_known_args()
-    run(pipeline_args, known_args.input_subscription, known_args.output_table)
+if __name__ == "__main__":
+    eo = ExtraOptions()
+    run(eo.subscription, eo.dataset, eo.table)
