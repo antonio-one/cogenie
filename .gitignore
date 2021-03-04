@@ -8,4 +8,4 @@ build.sh
 dist
 .coverage--all
 tests/pytest.ini
-consumers/test_consumer.py
+cogenie/service_layer/test_consumer.py
