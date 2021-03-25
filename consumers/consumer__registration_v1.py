@@ -12,7 +12,7 @@ from apache_beam.options.pipeline_options import (
 )
 
 options = PipelineOptions(
-    runner="DataflowRunner",
+    runner="DirectRunner",
     streaming=True,
     job_name="ingest-registration-v1-to-bigquery",
     experiments="use_beam_bq_sink",
