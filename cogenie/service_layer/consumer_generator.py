@@ -1,12 +1,22 @@
 import typing
 from pathlib import Path
 from string import Template
+from urllib.parse import urlunsplit
 
 import requests
-from consumer_generator.adapters import repository
-from consumer_generator.domain import model
-from settings import CONSUMER_REPOSITORY_PATH
-from sidious.helpers import catalogue_url
+
+from cogenie.adapters import repository
+from cogenie.domain import model
+from cogenie.settings import (
+    CONSUMER_REPOSITORY_PATH,
+    DATCAT_HOST,
+    DATCAT_PORT,
+    DATCAT_SCHEME,
+)
+
+DATCAT_NETLOC = f"{DATCAT_HOST}:{DATCAT_PORT}"
+SCHEMA_URL_COMPONENTS = (DATCAT_SCHEME, DATCAT_NETLOC, "/schemas", "refresh=True", "")
+SCHEMA_URL = urlunsplit(SCHEMA_URL_COMPONENTS)
 
 
 class ConsumerGenerator:
@@ -22,6 +32,10 @@ class ConsumerGenerator:
     def template(self) -> Template:
         with open(self.template_path, "r") as t:
             return Template(t.read())
+
+    def job_name(self, schema_key: str) -> str:
+        converted_key = schema_key.replace("_", "-")
+        return f"ingest-{converted_key}-to-bigquery"
 
     @property
     def _imports(self):
@@ -52,10 +66,11 @@ class ConsumerGenerator:
         return NotImplementedError
 
     def generate(self) -> str:
-        response = requests.get(url=catalogue_url(route="list_catalogue", refresh=True))
+        response = requests.get(url=SCHEMA_URL)
         schema_catalogue: typing.Dict = response.json()
         for schema_key, schema_value in schema_catalogue.items():
             consumer = model.Consumer()
+            consumer.job_name = self.job_name(schema_key)
             consumer.file_path = (
                 Path(CONSUMER_REPOSITORY_PATH) / f"consumer__{schema_key}.py"
             )
@@ -66,6 +81,7 @@ class ConsumerGenerator:
                 raise ValueError("Not all consumer class properties have been set")
 
             consumer.payload = self.template.substitute(
+                job_name=self.job_name(schema_key),
                 field_list=self._field_list(schema=schema_value),
                 simple_parse=self._simple_parse(schema=schema_value),
             )

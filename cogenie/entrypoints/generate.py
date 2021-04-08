@@ -11,13 +11,21 @@ The rest is a git/CI operational piece
 
 from os import listdir
 
-from consumer_generator.service_layer import consumer_generator
-from settings import CONSUMER_REPOSITORY_PATH, CONSUMER_TEMPLATE_PATH
+import click
+
+from cogenie.service_layer import consumer_generator
+from cogenie.settings import CONSUMER_REPOSITORY_PATH, CONSUMER_TEMPLATE_PATH
 
 
-def _run():
+@click.command()
+def main():
     cg = consumer_generator.ConsumerGenerator(
         CONSUMER_REPOSITORY_PATH, CONSUMER_TEMPLATE_PATH
     )
     cg.generate()
+    print(f"Consumers re-generated in: cogenie/{CONSUMER_REPOSITORY_PATH}/")
     print(listdir(CONSUMER_REPOSITORY_PATH))
+
+
+if __name__ == "__main__":
+    main()

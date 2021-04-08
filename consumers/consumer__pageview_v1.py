@@ -14,8 +14,8 @@ from apache_beam.options.pipeline_options import (
 options = PipelineOptions(
     runner="DataflowRunner",
     streaming=True,
-    job_name="$job_name",
-    experiments="use_beam_bq_sink"
+    job_name="ingest-pageview-v1-to-bigquery",
+    experiments="use_beam_bq_sink",
 )
 
 
@@ -28,14 +28,28 @@ class ExtraOptions(PipelineOptions):
 
 
 # Defines the BigQuery schema for the output table.
-SCHEMA = ",".join($field_list)
+SCHEMA = ",".join(
+    [
+        "event_timestamp:TIMESTAMP",
+        "event_name:STRING",
+        "event_version:INTEGER",
+        "col_1:INTEGER",
+        "col_2:BOOLEAN",
+        "date:DATE",
+    ]
+)
 
 
 def parse_json_message(message: str) -> typing.Dict[str, typing.Any]:
 
     row = json.loads(message)
     return {
-            $simple_parse
+        "event_timestamp": row["event_timestamp"],
+        "event_name": row["event_name"],
+        "event_version": row["event_version"],
+        "col_1": row["col_1"],
+        "col_2": row["col_2"],
+        "date": row["date"],
     }
 
 
@@ -69,7 +83,9 @@ class IngestOrDiscard(beam.DoFn):
         event_date = date.fromtimestamp(row["event_timestamp"])
 
         if partition_date != event_date:
-            logging.warning(f"{partition_date=} and {event_date=} are different. Row discarded.")
+            logging.warning(
+                f"{partition_date=} and {event_date=} are different. Row discarded."
+            )
             return
 
         return [row]
