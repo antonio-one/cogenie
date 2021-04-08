@@ -76,7 +76,13 @@ class IngestOrDiscard(beam.DoFn):
 
 
 def run(subscription, dataset, table):
-
+    """ to test locally change the runner="DataflowRunner" and execute the below on the command line
+    python -m consumers.$cmd_consumer_filename \
+      --project=$cmd_project_id \
+      --subscription=projects/$cmd_project_id/subscriptions/$cmd_subscription_name \
+      --dataset=$cmd_dataset_name \
+      --table=$cmd_table_name
+    """
     with beam.Pipeline(options=options) as p:
 
         messages = (

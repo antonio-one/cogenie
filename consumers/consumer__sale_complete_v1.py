@@ -12,10 +12,10 @@ from apache_beam.options.pipeline_options import (
 )
 
 options = PipelineOptions(
-    runner="DataflowRunner",
+    runner="DirectRunner",
     streaming=True,
-    job_name="ingest-notfound-v1-to-bigquery",
-    experiments="use_beam_bq_sink",
+    job_name="ingest-sale-complete-v1-to-bigquery",
+    experiments="use_beam_bq_sink"
 )
 
 
@@ -28,30 +28,22 @@ class ExtraOptions(PipelineOptions):
 
 
 # Defines the BigQuery schema for the output table.
-SCHEMA = ",".join(
-    [
-        "event_timestamp:TIMESTAMP",
-        "event_name:STRING",
-        "event_version:INTEGER",
-        "col_1:INTEGER",
-        "col_2:BOOLEAN",
-        "col_3:FLOAT",
-        "date:DATE",
-    ]
-)
+SCHEMA = ",".join(['event_timestamp:TIMESTAMP', 'event_name:STRING', 'event_version:INTEGER', 'user_id:STRING', 'transaction_id:STRING', 'column_1:FLOAT', 'column_2:TIMESTAMP', 'column_3:BOOLEAN', 'date:DATE'])
 
 
 def parse_json_message(message: str) -> typing.Dict[str, typing.Any]:
 
     row = json.loads(message)
     return {
-        "event_timestamp": row["event_timestamp"],
-        "event_name": row["event_name"],
-        "event_version": row["event_version"],
-        "col_1": row["col_1"],
-        "col_2": row["col_2"],
-        "col_3": row["col_3"],
-        "date": row["date"],
+            "event_timestamp": row["event_timestamp"],
+            "event_name": row["event_name"],
+            "event_version": row["event_version"],
+            "user_id": row["user_id"],
+            "transaction_id": row["transaction_id"],
+            "column_1": row["column_1"],
+            "column_2": row["column_2"],
+            "column_3": row["column_3"],
+            "date": row["date"],
     }
 
 
@@ -85,16 +77,20 @@ class IngestOrDiscard(beam.DoFn):
         event_date = date.fromtimestamp(row["event_timestamp"])
 
         if partition_date != event_date:
-            logging.warning(
-                f"{partition_date=} and {event_date=} are different. Row discarded."
-            )
+            logging.warning(f"{partition_date=} and {event_date=} are different. Row discarded.")
             return
 
         return [row]
 
 
 def run(subscription, dataset, table):
-
+    """ to test locally change the runner="DataflowRunner" and execute the below on the command line
+    python -m consumers.consumer__sale_complete_v1 \
+      --project=heuristic-lumiere-2021 \
+      --subscription=projects/heuristic-lumiere-2021/subscriptions/sale_complete_subscription \
+      --dataset=pdm_data_lake \
+      --table=sale_complete_v1
+    """
     with beam.Pipeline(options=options) as p:
 
         messages = (

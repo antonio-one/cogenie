@@ -11,11 +11,11 @@ from cogenie.settings import (
     CONSUMER_REPOSITORY_PATH,
     DATCAT_HOST,
     DATCAT_PORT,
-    DATCAT_SCHEME,
+    DATCAT_SCHEME, DATASET_ID
 )
 
 DATCAT_NETLOC = f"{DATCAT_HOST}:{DATCAT_PORT}"
-SCHEMA_URL_COMPONENTS = (DATCAT_SCHEME, DATCAT_NETLOC, "/schemas", "refresh=True", "")
+SCHEMA_URL_COMPONENTS = (DATCAT_SCHEME, DATCAT_NETLOC, "v1/datcat/schemas/list/refresh/true", "", "")
 SCHEMA_URL = urlunsplit(SCHEMA_URL_COMPONENTS)
 
 
@@ -84,6 +84,11 @@ class ConsumerGenerator:
                 job_name=self.job_name(schema_key),
                 field_list=self._field_list(schema=schema_value),
                 simple_parse=self._simple_parse(schema=schema_value),
+                cmd_consumer_filename=f"consumer__{schema_key}",
+                cmd_project_id=DATASET_ID.partition(".")[0],
+                cmd_subscription_name=f"{schema_key.rpartition('_')[0]}_subscription",
+                cmd_dataset_name=DATASET_ID.rpartition(".")[-1],
+                cmd_table_name=schema_key
             )
 
             consumer_repository = repository.FileSystemConsumerRepository(
