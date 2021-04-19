@@ -15,7 +15,7 @@ google-cloud-bigquery = ">=1.6.0,<2"
 apache-beam = {extras = ["gcp"], version = "^2.28.0"}
 
 [tool.poetry.dev-dependencies]
-pre-commit = "^2.10.0"
+pre-commit = "^2.12.1"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
 pytest-env = "^0.6.2"
