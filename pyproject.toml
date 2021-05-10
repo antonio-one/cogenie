@@ -21,7 +21,7 @@ pytest-cov = "^2.11.1"
 pytest-env = "^0.6.2"
 black = "^20.8b1"
 isort = "^5.7.0"
-flake8 = "^3.8.4"
+flake8 = "^3.9.2"
 
 [tool.isort]
 profile = "black"
