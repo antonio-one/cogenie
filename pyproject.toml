@@ -7,7 +7,7 @@ license = "TBC"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
-requests = "^2.25.1"
+requests = "^2.26.0"
 python-decouple = "^3.4"
 datcat = "^0.1.3"
 click = "^7.1.2"
